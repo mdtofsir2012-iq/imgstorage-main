@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const currentUser = await getCurrentUser();
 
   const [user, totalSizeMb] = await Promise.all([
     prisma.user.findUnique({
-      where: { email: user.email },
+      where: { email: currentUser.email },
       include: {
         apiKeys: { orderBy: { createdAt: "desc" } },
         images: { orderBy: { createdAt: "desc" }, take: 8 },
@@ -15,12 +16,12 @@ export default async function DashboardPage() {
       },
     }),
     prisma.image.aggregate({
-      where: { user: { email: session.user.email } },
+      where: { userId: currentUser.id },
       _sum: { fileSizeMb: true },
     }),
   ]);
 
-  if (!user) redirect("/login");
+  if (!user) return null;
   const totalImages = user._count.images;
   const totalUsage = user.apiKeys.reduce(
     (sum: number, k: (typeof user.apiKeys)[number]) => sum + k.usageCount,
