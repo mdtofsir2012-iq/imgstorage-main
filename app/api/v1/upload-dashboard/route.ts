@@ -1,5 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getCurrentUser } from '@/lib/auth'
+import { generateApiKey } from '@/lib/generate-key'
 import { prisma } from '@/lib/prisma'
 import { uploadImageToTelegram } from '@/lib/telegram'
 import { NextRequest, NextResponse } from 'next/server'
@@ -8,19 +8,21 @@ import { nanoid } from 'nanoid'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  let user
+  try {
+    user = await getCurrentUser()
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { apiKeys: { take: 1 } },
-  })
-
-  if (!user || user.apiKeys.length === 0) {
-    return NextResponse.json({ error: 'No API key found' }, { status: 400 })
+  let apiKey = await prisma.apiKey.findFirst({ where: { userId: user.id }, orderBy: { createdAt: 'asc' } })
+  if (!apiKey) {
+    apiKey = await prisma.apiKey.create({
+      data: { userId: user.id, key: generateApiKey(), name: 'Default Key' },
+    })
   }
+
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   const formData = await req.formData()
   const image = formData.get('image') as File
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
   const saved = await prisma.image.create({
     data: {
       userId: user.id,
-      apiKeyId: user.apiKeys[0].id,
+      apiKeyId: apiKey.id,
       telegramFileId: file_id,
       telegramMsgId: String(message_id),
       slug,
