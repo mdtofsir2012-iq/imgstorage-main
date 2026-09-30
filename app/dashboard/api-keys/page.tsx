@@ -4,7 +4,7 @@ import { getApiKeysData } from '@/lib/dashboard-data'
 import { getCurrentUser } from '@/lib/auth'
 
 export default async function ApiKeysPage() {
-   const { user } = await getCurrentUser()
+  const user = await getCurrentUser()
   const apiKeys = await getApiKeysData(user.id)
   return (
     <div className="space-y-6">
