@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from 'next-auth/middleware'
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from '@/lib/auth'
 
-export default withAuth(
-  function middleware(req) {
-    const isAuth = !!req.nextauth.token
-    const path = req.nextUrl.pathname
+export function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname
+  const isAuth = req.cookies.get(AUTH_COOKIE_NAME)?.value === AUTH_COOKIE_VALUE
 
-    if (isAuth && (path === '/' || path === '/login')) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        if (req.nextUrl.pathname.startsWith('/dashboard')) {
-          return !!token
-        }
-        return true
-      },
-    },
+  if (path.startsWith('/dashboard') && !isAuth) {
+    return NextResponse.redirect(new URL('/login', req.url))
   }
-)
+
+  if (isAuth && (path === '/' || path === '/login')) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: ['/', '/login', '/dashboard/:path*'],
