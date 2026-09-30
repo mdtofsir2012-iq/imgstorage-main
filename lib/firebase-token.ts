@@ -73,7 +73,7 @@ export async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseCl
     throw new Error("Firebase ID token has no subject");
   }
 
-  if (payload.auth_time && payload.auth_time > Math.floor(Date.now() / 1000)) {
+  if (typeof payload.auth_time === "number" && payload.auth_time > Math.floor(Date.now() / 1000)) {
     throw new Error("Firebase ID token has an invalid auth_time");
   }
 
