@@ -1,14 +1,12 @@
 import crypto from 'crypto'
 import { cookies } from 'next/headers'
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from '@/lib/auth-constants'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 
 export const OWNER_EMAIL = 'mdtofsir2004@gmail.com'
 export const OWNER_NAME = 'ImgStorage Owner'
 const OWNER_PASSWORD_SHA256 = '9260f889a03c3de5a806b802afdcca308513328a90c44988955d8dc13dd93504'
-export const AUTH_COOKIE_NAME = 'imgstorage_owner_auth'
-export const AUTH_COOKIE_VALUE = 'imgstorage-owner-session'
-
 export function passwordMatches(password: string) {
   return crypto.createHash('sha256').update(password).digest('hex') === OWNER_PASSWORD_SHA256
 }
