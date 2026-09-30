@@ -1,17 +1,13 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/login");
+  const user = await getCurrentUser();
 
   const [user, totalSizeMb] = await Promise.all([
     prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: user.email },
       include: {
         apiKeys: { orderBy: { createdAt: "desc" } },
         images: { orderBy: { createdAt: "desc" }, take: 8 },
@@ -120,7 +116,7 @@ export default async function DashboardPage() {
             : new Date().getHours() < 17
               ? "afternoon"
               : "evening"}
-          , {session.user.name?.split(" ")[0]} 👋
+          , {user.name?.split(" ")[0]} 👋
         </h1>
         <p className="text-sm text-[#555] mt-1">
           Here's what's happening with your images today.
