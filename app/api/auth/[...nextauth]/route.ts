@@ -1,61 +1,96 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import GoogleProvider from "next-auth/providers/google";
-import GithubProvider from "next-auth/providers/github";
+import { firebaseAdminAuth } from "@/lib/firebase-admin";
 import { generateApiKey } from "@/lib/generate-key";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking:true
-    }),
-    GithubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID ?? "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking:true
+    CredentialsProvider({
+      name: "Firebase Google",
+      credentials: {
+        idToken: {
+          label: "Firebase ID Token",
+          type: "text",
+        },
+      },
+
+      async authorize(credentials) {
+        if (!credentials?.idToken) return null;
+
+        try {
+          const decodedToken = await firebaseAdminAuth.verifyIdToken(
+            credentials.idToken
+          );
+
+          if (!decodedToken.email) return null;
+
+          const email = decodedToken.email;
+          const name = decodedToken.name ?? null;
+          const image = decodedToken.picture ?? null;
+
+          let user = await prisma.user.findUnique({
+            where: { email },
+          });
+
+          if (!user) {
+            const base = email
+              .split("@")[0]
+              .replace(/[^a-z0-9]/gi, "")
+              .toLowerCase();
+
+            const suffix = Math.random().toString(36).slice(2, 6);
+
+            user = await prisma.user.create({
+              data: {
+                email,
+                name,
+                image,
+                username: `${base}_${suffix}`,
+                apiKeys: {
+                  create: {
+                    key: generateApiKey(),
+                    name: "Default Key",
+                  },
+                },
+              },
+            });
+          } else {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                name,
+                image,
+              },
+            });
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            username: user.username,
+          };
+        } catch (error) {
+          console.error("Firebase authentication failed:", error);
+          return null;
+        }
+      },
     }),
   ],
+
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET || "",
-  
-  events: {
-    async createUser({ user }) {
-      if (!user.email) return;
-
-      const base = user.email
-        .split("@")[0]
-        .replace(/[^a-z0-9]/gi, "")
-        .toLowerCase();
-      
-      const suffix = Math.random().toString(36).slice(2, 6);
-      const username = `${base}_${suffix}`;
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          username,
-          apiKeys: {
-            create: {
-              key: generateApiKey(),
-              name: "Default Key",
-            },
-          },
-        },
-      });
-    },
-  },
 
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.username = user.username;
       }
-      
+
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -64,19 +99,20 @@ export const authOptions: NextAuthOptions = {
             username: true,
           },
         });
-        
+
         if (dbUser) {
+          token.id = dbUser.id;
           token.username = dbUser.username;
         }
       }
-      
+
       return token;
     },
 
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.username = token.username as string; // ✅ Now TypeScript knows about username
+        session.user.username = token.username as string | null | undefined;
       }
 
       if (session.user?.email) {
@@ -96,7 +132,7 @@ export const authOptions: NextAuthOptions = {
           session.user.name = dbUser.name;
           session.user.email = dbUser.email;
           session.user.image = dbUser.image;
-          session.user.username = dbUser.username; // ✅ This will work now
+          session.user.username = dbUser.username;
         }
       }
 
