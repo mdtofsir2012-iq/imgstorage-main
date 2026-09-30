@@ -1,13 +1,11 @@
-
 import UploadZone from '@/components/dashboard/UploadZone'
 import ImageGrid from '@/components/dashboard/ImageGrid'
 import { getImagesData } from '@/lib/dashboard-data'
 import { getCurrentUser } from '@/lib/auth'
 
 export default async function ImagesPage() {
-  const { user } = await getCurrentUser()
+  const user = await getCurrentUser()
   const images = await getImagesData(user.id)
-
 
   const serialized = images.map((img: typeof images[number]) => ({
     id: img.id,
