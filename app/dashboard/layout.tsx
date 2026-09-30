@@ -92,14 +92,14 @@ export default async function DashboardLayout({
           </div>
           <div className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-white/[0.04] transition-colors">
             {user.image ? (
-             <Image src={session.user.image} width={24} height={24} className="rounded-full" alt="avatar" />
+             <Image src={user.image} width={24} height={24} className="rounded-full" alt="avatar" />
             ) : (
               <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs">
                 {user.name?.[0]}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[#ccc] truncate">{session.user.name}</p>
+              <p className="text-xs font-medium text-[#ccc] truncate">{user.name}</p>
               <p className="text-xs text-[#555] truncate">{user.email}</p>
             </div>
           </div>
