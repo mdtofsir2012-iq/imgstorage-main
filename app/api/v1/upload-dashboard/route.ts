@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   })
 
   await prisma.apiKey.update({
-    where: { id: user.apiKeys[0].id },
+    where: { id: apiKey.id },
     data: { usageCount: { increment: 1 } },
   })
 
