@@ -1,7 +1,7 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { firebaseAdminAuth } from "@/lib/firebase-admin";
+import { getFirebaseAdminAuth } from "@/lib/firebase-admin";
 import { generateApiKey } from "@/lib/generate-key";
 
 export const authOptions: NextAuthOptions = {
@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.idToken) return null;
 
         try {
-          const decodedToken = await firebaseAdminAuth.verifyIdToken(
+          const decodedToken = await getFirebaseAdminAuth().verifyIdToken(
             credentials.idToken
           );
 
