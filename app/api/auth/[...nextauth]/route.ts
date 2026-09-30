@@ -36,8 +36,16 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        let user = await prisma.user.findUnique({
-          where: { email: OWNER_EMAIL },
+        // Reuse an existing owner created by the previous OAuth/Firebase auth.
+        // Otherwise a unique username ("tofsir") could make user creation fail
+        // even though the password itself is correct.
+        let user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: OWNER_EMAIL },
+              { username: "tofsir" },
+            ],
+          },
         });
 
         if (!user) {
