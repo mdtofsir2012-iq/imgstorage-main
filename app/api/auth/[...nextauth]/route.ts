@@ -1,79 +1,68 @@
+import crypto from "crypto";
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { verifyFirebaseIdToken } from "@/lib/firebase-token";
 import { generateApiKey } from "@/lib/generate-key";
+
+const OWNER_EMAIL = "owner@imgstorage.local";
+const OWNER_NAME = "ImgStorage Owner";
+
+function passwordMatches(input: string, configured: string) {
+  const inputHash = crypto.createHash("sha256").update(input).digest();
+  const configuredHash = crypto.createHash("sha256").update(configured).digest();
+
+  return crypto.timingSafeEqual(inputHash, configuredHash);
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "Firebase Google",
+      name: "Password",
       credentials: {
-        idToken: {
-          label: "Firebase ID Token",
-          type: "text",
+        password: {
+          label: "Password",
+          type: "password",
         },
       },
 
       async authorize(credentials) {
-        if (!credentials?.idToken) return null;
+        const configuredPassword = process.env.IMGSTORAGE_LOGIN_PASSWORD;
 
-        try {
-          const decodedToken = await verifyFirebaseIdToken(credentials.idToken);
-
-          if (!decodedToken.email) return null;
-
-          const email = decodedToken.email;
-          const name = decodedToken.name ?? null;
-          const image = decodedToken.picture ?? null;
-
-          let user = await prisma.user.findUnique({
-            where: { email },
-          });
-
-          if (!user) {
-            const base = email
-              .split("@")[0]
-              .replace(/[^a-z0-9]/gi, "")
-              .toLowerCase();
-
-            const suffix = Math.random().toString(36).slice(2, 6);
-
-            user = await prisma.user.create({
-              data: {
-                email,
-                name,
-                image,
-                username: `${base}_${suffix}`,
-                apiKeys: {
-                  create: {
-                    key: generateApiKey(),
-                    name: "Default Key",
-                  },
-                },
-              },
-            });
-          } else {
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                name,
-                image,
-              },
-            });
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            username: user.username,
-          };
-        } catch (error) {
-          console.error("Firebase authentication failed:", error);
+        if (!configuredPassword || !credentials?.password) {
           return null;
         }
+
+        if (!passwordMatches(credentials.password, configuredPassword)) {
+          return null;
+        }
+
+        let user = await prisma.user.findUnique({
+          where: { email: OWNER_EMAIL },
+        });
+
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              email: OWNER_EMAIL,
+              name: OWNER_NAME,
+              username: "tofsir",
+              apiKeys: {
+                create: {
+                  key: generateApiKey(),
+                  name: "Default Key",
+                },
+              },
+            },
+          });
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          username: user.username,
+        };
       },
     }),
   ],
