@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { deleteImageFromTelegram } from '@/lib/telegram'
 import { NextRequest, NextResponse } from 'next/server'
@@ -9,15 +8,12 @@ export async function DELETE(
  { params }: { params: Promise<{ slug: string }> }  
 ) {
   const param = (await params).slug
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  })
-
-  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  let user
+  try {
+    user = await getCurrentUser()
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const image = await prisma.image.findFirst({
     where: { slug: param, userId: user.id },
