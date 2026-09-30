@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from '@/lib/auth'
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from '@/lib/auth-constants'
 
 export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname
