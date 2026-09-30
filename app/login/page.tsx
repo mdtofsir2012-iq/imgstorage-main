@@ -23,13 +23,20 @@ export default function LoginPage() {
       });
 
       if (!response?.ok) {
-        throw new Error("Invalid password");
+        console.error("Login failed:", response?.error);
+        setError(
+          response?.error === "CredentialsSignin"
+            ? "Password rejected by the server."
+            : `Login failed: ${response?.error || "Unknown error"}`
+        );
+        setLoading(false);
+        return;
       }
 
       window.location.href = "/dashboard";
     } catch (error) {
       console.error("Login failed:", error);
-      setError("Invalid password.");
+      setError("Login request failed.");
       setLoading(false);
     }
   }
