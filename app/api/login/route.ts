@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE, OWNER_EMAIL, passwordMatches } from '@/lib/auth'
+import { OWNER_EMAIL, passwordMatches } from '@/lib/auth'
+import { AUTH_COOKIE_NAME, AUTH_COOKIE_VALUE } from '@/lib/auth-constants'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
