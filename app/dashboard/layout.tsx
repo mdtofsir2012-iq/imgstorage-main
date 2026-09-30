@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SignOutButton } from "@/components/global/SignOut";
 import { Inter } from 'next/font/google'
@@ -19,7 +16,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { session, user } = await getCurrentUser()
+  const user = await getCurrentUser()
 
   return (
     <div className={`min-h-screen bg-[#0a0a0a] text-[#ededed] font-sans ${inter.variable}`}>
@@ -94,16 +91,16 @@ export default async function DashboardLayout({
             <Link href="/privacy" className="text-xs text-[#555] hover:text-[#888] transition-colors">Privacy</Link>
           </div>
           <div className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-white/[0.04] transition-colors">
-            {session.user.image ? (
+            {user.image ? (
              <Image src={session.user.image} width={24} height={24} className="rounded-full" alt="avatar" />
             ) : (
               <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs">
-                {session.user.name?.[0]}
+                {user.name?.[0]}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-[#ccc] truncate">{session.user.name}</p>
-              <p className="text-xs text-[#555] truncate">{session.user.email}</p>
+              <p className="text-xs text-[#555] truncate">{user.email}</p>
             </div>
           </div>
           <SignOutButton />
